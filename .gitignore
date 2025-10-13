@@ -1,0 +1,48 @@
+# Credentials - NEVER commit these!
+x_credentials.json
+*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test files
+test_*.jpg
+test_*.png
+test_*.gif
+test_image.*
+
+# Logs
+*.log
+
