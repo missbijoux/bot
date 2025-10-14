@@ -44,7 +44,7 @@ HTML_TEMPLATE = '''
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: transparent;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -53,13 +53,14 @@ HTML_TEMPLATE = '''
         }
         
         .container {
-            background: rgba(20, 20, 35, 0.85);
+            background: rgba(20, 20, 35, 0.75);
             backdrop-filter: blur(40px) saturate(150%);
             -webkit-backdrop-filter: blur(40px) saturate(150%);
             border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6), 
-                        0 0 100px rgba(29, 161, 242, 0.1);
+                        0 0 100px rgba(29, 161, 242, 0.15),
+                        inset 0 0 80px rgba(29, 161, 242, 0.05);
             max-width: 600px;
             width: 100%;
             padding: 40px;
@@ -232,6 +233,10 @@ HTML_TEMPLATE = '''
             ></textarea>
             <div class="char-count" id="charCount">0 / 280</div>
             
+            <label style="margin-top: 15px;">Attach Images (up to 4)</label>
+            <input type="file" id="imageInput" accept="image/*" multiple style="width: 100%; padding: 10px; background: rgba(45, 51, 89, 0.5); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; cursor: pointer; margin-bottom: 5px;">
+            <div id="imagePreview" style="margin-bottom: 15px; color: #8899A6; font-size: 12px;"></div>
+            
             <button type="submit" class="btn-primary" id="postBtn">
                 🚀 Post Tweet
             </button>
@@ -239,6 +244,7 @@ HTML_TEMPLATE = '''
         
         <div class="btn-group">
             <button class="btn-secondary" onclick="clearTweet()">🗑️ Clear</button>
+            <button class="btn-secondary" onclick="clearImages()">🖼️ Clear Images</button>
         </div>
         
         <div class="activity">
@@ -251,6 +257,8 @@ HTML_TEMPLATE = '''
         const textarea = document.getElementById('tweetText');
         const charCount = document.getElementById('charCount');
         const activityLog = document.getElementById('activityLog');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
         
         textarea.addEventListener('input', function() {
             const count = this.value.length;
@@ -264,6 +272,17 @@ HTML_TEMPLATE = '''
                 charCount.classList.remove('error');
             } else {
                 charCount.classList.remove('error', 'warning');
+            }
+        });
+        
+        imageInput.addEventListener('change', function() {
+            const count = this.files.length;
+            if (count > 0) {
+                const fileNames = Array.from(this.files).slice(0, 4).map(f => f.name).join(', ');
+                imagePreview.innerHTML = `<span style="color: #17BF63;">✅ ${count} image${count > 1 ? 's' : ''} selected:</span> ${fileNames}`;
+                log(`📎 Attached ${count} image${count > 1 ? 's' : ''}`);
+            } else {
+                imagePreview.innerHTML = '';
             }
         });
         
@@ -291,10 +310,18 @@ HTML_TEMPLATE = '''
             log('📤 Attempting to post tweet...');
             
             try {
+                const formData = new FormData();
+                formData.append('text', text);
+                
+                // Add images if selected
+                const files = imageInput.files;
+                for (let i = 0; i < Math.min(files.length, 4); i++) {
+                    formData.append('images', files[i]);
+                }
+                
                 const response = await fetch('/post', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text: text})
+                    body: formData
                 });
                 
                 const data = await response.json();
@@ -304,6 +331,7 @@ HTML_TEMPLATE = '''
                     log(`🔗 Tweet ID: ${data.tweet_id}`);
                     alert('Success! Your tweet was posted!\\nTweet ID: ' + data.tweet_id);
                     clearTweet();
+                    clearImages();
                 } else {
                     log('❌ Error: ' + data.error);
                     alert('Error: ' + data.error);
@@ -324,6 +352,12 @@ HTML_TEMPLATE = '''
             log('🗑️ Cleared tweet');
         }
         
+        function clearImages() {
+            imageInput.value = '';
+            imagePreview.innerHTML = '';
+            log('🖼️ Cleared images');
+        }
+        
         log('✨ GUI ready! Compose your tweet above.');
     </script>
 </body>
@@ -341,14 +375,37 @@ def post_tweet():
     if not auth or not bot:
         return jsonify({'success': False, 'error': 'Not authenticated. Check credentials.'})
     
-    data = request.json
-    text = data.get('text', '').strip()
+    text = request.form.get('text', '').strip()
     
     if not text:
         return jsonify({'success': False, 'error': 'Empty tweet'})
     
     try:
-        response = bot.post_tweet(text)
+        # Check if images were uploaded
+        images = request.files.getlist('images')
+        
+        if images and len(images) > 0:
+            # Save images temporarily
+            import tempfile
+            image_paths = []
+            for img in images[:4]:  # Max 4 images
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(img.filename)[1])
+                img.save(temp_file.name)
+                image_paths.append(temp_file.name)
+            
+            # Post with media
+            response = bot.post_tweet_with_media(text, image_paths)
+            
+            # Clean up temp files
+            for path in image_paths:
+                try:
+                    os.remove(path)
+                except:
+                    pass
+        else:
+            # Post text only
+            response = bot.post_tweet(text)
+        
         if response and response.data:
             tweet_id = response.data.get('id')
             return jsonify({'success': True, 'tweet_id': tweet_id})
@@ -359,7 +416,7 @@ def post_tweet():
 
 def start_flask():
     """Start Flask in background thread"""
-    app.run(port=5000, debug=False, use_reloader=False)
+    app.run(port=5002, debug=False, use_reloader=False)
 
 if __name__ == '__main__':
     print("\n🚀 X Bot Instant - Opening now!\n")
@@ -375,12 +432,11 @@ if __name__ == '__main__':
     # Create native window - Opens INSTANTLY!
     window = webview.create_window(
         'X Bot - Tweet Composer',
-        'http://127.0.0.1:5000',
+        'http://127.0.0.1:5002',
         width=700,
-        height=750,
+        height=800,
         resizable=True,
-        min_size=(600, 700),
-        transparent=True
+        min_size=(600, 700)
     )
     
     # Start the application
