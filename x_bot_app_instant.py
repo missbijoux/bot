@@ -233,9 +233,17 @@ HTML_TEMPLATE = '''
             ></textarea>
             <div class="char-count" id="charCount">0 / 280</div>
             
-            <label style="margin-top: 15px;">Attach Images (up to 4)</label>
-            <input type="file" id="imageInput" accept="image/*" multiple style="width: 100%; padding: 10px; background: rgba(45, 51, 89, 0.5); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; cursor: pointer; margin-bottom: 5px;">
-            <div id="imagePreview" style="margin-bottom: 15px; color: #8899A6; font-size: 12px;"></div>
+            <div style="margin: 15px 0;">
+                <label>Attach Images (Optional)</label>
+                <div style="background: rgba(45, 51, 89, 0.5); border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s;" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div style="color: #8899A6; font-size: 14px;">
+                        📎 Click to select images or drag & drop<br>
+                        <span style="font-size: 12px;">Up to 4 images (JPG, PNG, GIF)</span>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                <div id="fileList" style="margin-top: 10px;"></div>
+            </div>
             
             <button type="submit" class="btn-primary" id="postBtn">
                 🚀 Post Tweet
@@ -244,7 +252,7 @@ HTML_TEMPLATE = '''
         
         <div class="btn-group">
             <button class="btn-secondary" onclick="clearTweet()">🗑️ Clear</button>
-            <button class="btn-secondary" onclick="clearImages()">🖼️ Clear Images</button>
+            <button class="btn-secondary" onclick="clearFiles()">🖼️ Clear Images</button>
         </div>
         
         <div class="activity">
@@ -257,8 +265,11 @@ HTML_TEMPLATE = '''
         const textarea = document.getElementById('tweetText');
         const charCount = document.getElementById('charCount');
         const activityLog = document.getElementById('activityLog');
-        const imageInput = document.getElementById('imageInput');
-        const imagePreview = document.getElementById('imagePreview');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const dropZone = document.getElementById('dropZone');
+        
+        let selectedFiles = [];
         
         textarea.addEventListener('input', function() {
             const count = this.value.length;
@@ -275,16 +286,63 @@ HTML_TEMPLATE = '''
             }
         });
         
-        imageInput.addEventListener('change', function() {
-            const count = this.files.length;
-            if (count > 0) {
-                const fileNames = Array.from(this.files).slice(0, 4).map(f => f.name).join(', ');
-                imagePreview.innerHTML = `<span style="color: #17BF63;">✅ ${count} image${count > 1 ? 's' : ''} selected:</span> ${fileNames}`;
-                log(`📎 Attached ${count} image${count > 1 ? 's' : ''}`);
-            } else {
-                imagePreview.innerHTML = '';
-            }
+        // File selection
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(this.files);
         });
+        
+        // Drag and drop
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#1DA1F2';
+            this.style.background = 'rgba(29, 161, 242, 0.1)';
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+            this.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            this.style.background = 'rgba(45, 51, 89, 0.5)';
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            this.style.background = 'rgba(45, 51, 89, 0.5)';
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files).slice(0, 4);
+            updateFileList();
+        }
+        
+        function updateFileList() {
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = '';
+                return;
+            }
+            
+            const html = selectedFiles.map((file, i) => `
+                <div style="background: rgba(45, 51, 89, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 8px 12px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #E8F5FD; font-size: 13px;">📎 ${file.name}</span>
+                    <button type="button" onclick="removeFile(${i})" style="background: #E0245E; border: none; color: white; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px;">✕</button>
+                </div>
+            `).join('');
+            
+            fileList.innerHTML = html;
+            log(`📎 ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''} attached`);
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        }
+        
+        function clearFiles() {
+            selectedFiles = [];
+            fileInput.value = '';
+            updateFileList();
+            log('🖼️ Cleared images');
+        }
         
         function log(message) {
             const time = new Date().toLocaleTimeString();
@@ -313,11 +371,10 @@ HTML_TEMPLATE = '''
                 const formData = new FormData();
                 formData.append('text', text);
                 
-                // Add images if selected
-                const files = imageInput.files;
-                for (let i = 0; i < Math.min(files.length, 4); i++) {
-                    formData.append('images', files[i]);
-                }
+                // Add selected files
+                selectedFiles.forEach(file => {
+                    formData.append('images', file);
+                });
                 
                 const response = await fetch('/post', {
                     method: 'POST',
@@ -331,7 +388,7 @@ HTML_TEMPLATE = '''
                     log(`🔗 Tweet ID: ${data.tweet_id}`);
                     alert('Success! Your tweet was posted!\\nTweet ID: ' + data.tweet_id);
                     clearTweet();
-                    clearImages();
+                    clearFiles();
                 } else {
                     log('❌ Error: ' + data.error);
                     alert('Error: ' + data.error);
@@ -350,12 +407,6 @@ HTML_TEMPLATE = '''
             charCount.textContent = '0 / 280';
             charCount.classList.remove('error', 'warning');
             log('🗑️ Cleared tweet');
-        }
-        
-        function clearImages() {
-            imageInput.value = '';
-            imagePreview.innerHTML = '';
-            log('🖼️ Cleared images');
         }
         
         log('✨ GUI ready! Compose your tweet above.');
@@ -381,27 +432,33 @@ def post_tweet():
         return jsonify({'success': False, 'error': 'Empty tweet'})
     
     try:
-        # Check if images were uploaded
+        # Check for uploaded images
         images = request.files.getlist('images')
         
         if images and len(images) > 0:
-            # Save images temporarily
+            # Save images to temp files
             import tempfile
             image_paths = []
+            
             for img in images[:4]:  # Max 4 images
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(img.filename)[1])
-                img.save(temp_file.name)
-                image_paths.append(temp_file.name)
+                if img.filename:
+                    temp = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(img.filename)[1])
+                    img.save(temp.name)
+                    image_paths.append(temp.name)
+                    temp.close()
             
-            # Post with media
-            response = bot.post_tweet_with_media(text, image_paths)
-            
-            # Clean up temp files
-            for path in image_paths:
-                try:
-                    os.remove(path)
-                except:
-                    pass
+            if image_paths:
+                # Post with media
+                response = bot.post_tweet_with_media(text, image_paths)
+                
+                # Clean up temp files
+                for path in image_paths:
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
+            else:
+                response = bot.post_tweet(text)
         else:
             # Post text only
             response = bot.post_tweet(text)
@@ -429,14 +486,15 @@ if __name__ == '__main__':
     import time
     time.sleep(1)
     
-    # Create native window - Opens INSTANTLY!
+    # Create native window - Opens INSTANTLY with transparency!
     window = webview.create_window(
         'X Bot - Tweet Composer',
         'http://127.0.0.1:5002',
         width=700,
         height=800,
         resizable=True,
-        min_size=(600, 700)
+        min_size=(600, 700),
+        transparent=True
     )
     
     # Start the application

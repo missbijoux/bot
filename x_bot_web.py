@@ -15,13 +15,18 @@ app = Flask(__name__)
 bot = None
 authenticated = False
 
-# Initialize bot
-try:
-    bot = XBot()
-    if bot.client:
-        authenticated = True
-except:
-    authenticated = False
+def lazy_init_bot():
+    """Initialize bot only when needed - avoids rate limit at startup"""
+    global bot, authenticated
+    if bot is None:
+        try:
+            bot = XBot()
+            if bot.client:
+                authenticated = True
+        except Exception as e:
+            print(f"Bot init: {e}")
+            authenticated = False
+    return bot, authenticated
 
 # HTML Template - Beautiful, modern design
 HTML_TEMPLATE = '''
@@ -40,7 +45,7 @@ HTML_TEMPLATE = '''
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -49,9 +54,13 @@ HTML_TEMPLATE = '''
         }
         
         .container {
-            background: white;
+            background: rgba(20, 20, 35, 0.85);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6), 
+                        0 0 100px rgba(29, 161, 242, 0.15);
             max-width: 600px;
             width: 100%;
             padding: 40px;
@@ -66,10 +75,11 @@ HTML_TEMPLATE = '''
             color: #1DA1F2;
             font-size: 36px;
             margin-bottom: 5px;
+            text-shadow: 0 0 20px rgba(29, 161, 242, 0.5);
         }
         
         .subtitle {
-            color: #657786;
+            color: #B8C5D0;
             font-size: 16px;
         }
         
@@ -94,7 +104,7 @@ HTML_TEMPLATE = '''
         label {
             display: block;
             font-weight: 600;
-            color: #14171A;
+            color: #E8F5FD;
             margin-bottom: 8px;
             font-size: 14px;
         }
@@ -102,34 +112,44 @@ HTML_TEMPLATE = '''
         textarea {
             width: 100%;
             padding: 15px;
-            border: 2px solid #E1E8ED;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             font-size: 16px;
             font-family: inherit;
             resize: vertical;
             min-height: 150px;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
+            background: rgba(45, 51, 89, 0.5);
+            color: white;
+        }
+        
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4);
         }
         
         textarea:focus {
             outline: none;
             border-color: #1DA1F2;
+            background: rgba(45, 51, 89, 0.7);
+            box-shadow: 0 0 15px rgba(29, 161, 242, 0.2);
         }
         
         .char-count {
             text-align: right;
             margin-top: 5px;
             font-size: 14px;
-            color: #657786;
+            color: #8899A6;
             margin-bottom: 20px;
         }
         
         .char-count.warning {
             color: #FFAD1F;
+            text-shadow: 0 0 10px rgba(255, 173, 31, 0.5);
         }
         
         .char-count.error {
             color: #E0245E;
+            text-shadow: 0 0 10px rgba(224, 36, 94, 0.5);
         }
         
         .file-input {
@@ -143,22 +163,24 @@ HTML_TEMPLATE = '''
         .file-label {
             display: inline-block;
             padding: 10px 20px;
-            background: #E1E8ED;
-            color: #14171A;
+            background: rgba(29, 161, 242, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
         
         .file-label:hover {
-            background: #D1D8DD;
+            background: rgba(29, 161, 242, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
         }
         
         .selected-files {
             margin-top: 10px;
             font-size: 14px;
-            color: #657786;
+            color: #8899A6;
         }
         
         button {
@@ -191,12 +213,14 @@ HTML_TEMPLATE = '''
         }
         
         .btn-secondary {
-            background: #E1E8ED;
-            color: #14171A;
+            background: rgba(101, 119, 134, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .btn-secondary:hover {
-            background: #D1D8DD;
+            background: rgba(101, 119, 134, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         
         .btn-success {
@@ -224,13 +248,14 @@ HTML_TEMPLATE = '''
         }
         
         .activity h3 {
-            color: #14171A;
+            color: #E8F5FD;
             margin-bottom: 15px;
             font-size: 18px;
         }
         
         .log {
-            background: #F7F9FA;
+            background: rgba(25, 39, 52, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 15px;
             max-height: 200px;
@@ -241,7 +266,7 @@ HTML_TEMPLATE = '''
         
         .log-entry {
             margin-bottom: 5px;
-            color: #14171A;
+            color: #B8C5D0;
         }
         
         .log-entry .time {
@@ -486,7 +511,8 @@ def home():
 
 @app.route('/post', methods=['POST'])
 def post_tweet():
-    if not authenticated or not bot:
+    bot, auth = lazy_init_bot()
+    if not auth or not bot:
         return jsonify({'success': False, 'error': 'Not authenticated'})
     
     data = request.json
@@ -507,7 +533,8 @@ def post_tweet():
 
 @app.route('/get-tweets')
 def get_tweets():
-    if not authenticated or not bot:
+    bot, auth = lazy_init_bot()
+    if not auth or not bot:
         return jsonify({'success': False, 'error': 'Not authenticated'})
     
     try:
