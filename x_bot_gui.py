@@ -41,6 +41,9 @@ class XBotGUI:
     def create_widgets(self):
         """Create all GUI widgets"""
         
+        # Set background color for root
+        self.root.configure(bg='white')
+        
         # Header
         header_frame = tk.Frame(self.root, bg="#1DA1F2", height=60)
         header_frame.pack(fill=tk.X, padx=0, pady=0)
@@ -49,24 +52,25 @@ class XBotGUI:
         title_label = tk.Label(
             header_frame,
             text="🐦 X Bot - Tweet Composer",
-            font=("Helvetica", 18, "bold"),
+            font=("Arial", 18, "bold"),
             bg="#1DA1F2",
             fg="white"
         )
         title_label.pack(pady=15)
         
         # Main content frame
-        main_frame = tk.Frame(self.root, padx=20, pady=20)
+        main_frame = tk.Frame(self.root, padx=20, pady=20, bg='white')
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Status indicator
-        status_frame = tk.Frame(main_frame)
+        status_frame = tk.Frame(main_frame, bg='white')
         status_frame.pack(fill=tk.X, pady=(0, 15))
         
         status_label = tk.Label(
             status_frame,
             text="Status:",
-            font=("Helvetica", 10, "bold")
+            font=("Arial", 10, "bold"),
+            bg='white'
         )
         status_label.pack(side=tk.LEFT)
         
@@ -80,8 +84,9 @@ class XBotGUI:
         self.status_indicator = tk.Label(
             status_frame,
             text=status_text,
-            font=("Helvetica", 10),
-            fg=status_color
+            font=("Arial", 10),
+            fg=status_color,
+            bg='white'
         )
         self.status_indicator.pack(side=tk.LEFT, padx=5)
         
@@ -89,7 +94,8 @@ class XBotGUI:
         tweet_label = tk.Label(
             main_frame,
             text="Compose Your Tweet:",
-            font=("Helvetica", 12, "bold")
+            font=("Arial", 12, "bold"),
+            bg='white'
         )
         tweet_label.pack(anchor=tk.W, pady=(0, 5))
         
@@ -99,22 +105,25 @@ class XBotGUI:
             wrap=tk.WORD,
             width=60,
             height=8,
-            font=("Helvetica", 11),
+            font=("Arial", 12),
             relief=tk.SOLID,
-            borderwidth=1
+            borderwidth=1,
+            bg='white',
+            fg='black'
         )
         self.tweet_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         self.tweet_text.bind('<KeyRelease>', self.update_character_count)
         
         # Character counter
-        counter_frame = tk.Frame(main_frame)
+        counter_frame = tk.Frame(main_frame, bg='white')
         counter_frame.pack(fill=tk.X, pady=(0, 15))
         
         self.char_count_label = tk.Label(
             counter_frame,
             text="0 / 280 characters",
-            font=("Helvetica", 9),
-            fg="gray"
+            font=("Arial", 10),
+            fg="gray",
+            bg='white'
         )
         self.char_count_label.pack(side=tk.RIGHT)
         
@@ -122,9 +131,10 @@ class XBotGUI:
         media_frame = tk.LabelFrame(
             main_frame,
             text="Attach Images (Optional)",
-            font=("Helvetica", 10, "bold"),
+            font=("Arial", 11, "bold"),
             padx=10,
-            pady=10
+            pady=10,
+            bg='white'
         )
         media_frame.pack(fill=tk.X, pady=(0, 15))
         
@@ -134,11 +144,11 @@ class XBotGUI:
             command=self.add_images,
             bg="#1DA1F2",
             fg="white",
-            font=("Helvetica", 10),
-            relief=tk.FLAT,
+            font=("Arial", 11),
             cursor="hand2",
             padx=10,
-            pady=5
+            pady=5,
+            highlightthickness=0
         )
         btn_add_image.pack(side=tk.LEFT, padx=5)
         
@@ -147,24 +157,25 @@ class XBotGUI:
             text="🗑️ Clear Images",
             command=self.clear_images,
             bg="#E1E8ED",
-            font=("Helvetica", 10),
-            relief=tk.FLAT,
+            font=("Arial", 11),
             cursor="hand2",
             padx=10,
-            pady=5
+            pady=5,
+            highlightthickness=0
         )
         btn_clear_images.pack(side=tk.LEFT, padx=5)
         
         self.images_label = tk.Label(
             media_frame,
             text="No images selected",
-            font=("Helvetica", 9),
-            fg="gray"
+            font=("Arial", 10),
+            fg="gray",
+            bg='white'
         )
         self.images_label.pack(side=tk.LEFT, padx=10)
         
         # Buttons frame
-        buttons_frame = tk.Frame(main_frame)
+        buttons_frame = tk.Frame(main_frame, bg='white')
         buttons_frame.pack(fill=tk.X, pady=(0, 15))
         
         # Post button
@@ -174,11 +185,11 @@ class XBotGUI:
             command=self.post_tweet,
             bg="#1DA1F2",
             fg="white",
-            font=("Helvetica", 12, "bold"),
-            relief=tk.FLAT,
+            font=("Arial", 13, "bold"),
             cursor="hand2",
             padx=20,
-            pady=10
+            pady=10,
+            highlightthickness=0
         )
         self.post_button.pack(side=tk.LEFT, padx=5)
         
@@ -188,11 +199,11 @@ class XBotGUI:
             text="🗑️ Clear",
             command=self.clear_text,
             bg="#E1E8ED",
-            font=("Helvetica", 11),
-            relief=tk.FLAT,
+            font=("Arial", 12),
             cursor="hand2",
             padx=15,
-            pady=10
+            pady=10,
+            highlightthickness=0
         )
         btn_clear.pack(side=tk.LEFT, padx=5)
         
@@ -203,11 +214,11 @@ class XBotGUI:
             command=self.get_tweets,
             bg="#17BF63",
             fg="white",
-            font=("Helvetica", 11),
-            relief=tk.FLAT,
+            font=("Arial", 12),
             cursor="hand2",
             padx=15,
-            pady=10
+            pady=10,
+            highlightthickness=0
         )
         btn_get_tweets.pack(side=tk.LEFT, padx=5)
         
@@ -215,7 +226,8 @@ class XBotGUI:
         log_label = tk.Label(
             main_frame,
             text="Activity Log:",
-            font=("Helvetica", 10, "bold")
+            font=("Arial", 11, "bold"),
+            bg='white'
         )
         log_label.pack(anchor=tk.W, pady=(10, 5))
         
@@ -224,8 +236,9 @@ class XBotGUI:
             wrap=tk.WORD,
             width=60,
             height=6,
-            font=("Courier", 9),
+            font=("Monaco", 10),
             bg="#F7F9FA",
+            fg='black',
             relief=tk.SOLID,
             borderwidth=1,
             state=tk.DISABLED
