@@ -22,6 +22,14 @@ Edit `x_credentials.json` with your X API credentials. See **[X_BOT_SETUP.md](X_
 
 ### 3. Post Your First Tweet
 
+**Option A: Use the GUI (Easy!)** 🎨
+
+```bash
+python3 x_bot_gui.py
+```
+
+**Option B: Use Command Line**
+
 ```bash
 python3 x_bot.py --post "Hello from my X bot! 🤖"
 ```
@@ -29,6 +37,8 @@ python3 x_bot.py --post "Hello from my X bot! 🤖"
 ---
 
 ## Features
+
+✅ **Graphical Interface (GUI)** - User-friendly window to compose and post tweets  
 
 ✅ **Post Tweets** - Simple text tweets or with images  
 ✅ **Reply to Tweets** - Engage in conversations  
@@ -41,6 +51,22 @@ python3 x_bot.py --post "Hello from my X bot! 🤖"
 ---
 
 ## Usage Examples
+
+### Graphical Interface (GUI) - Easiest Way! 🎨
+
+Launch the GUI for a user-friendly experience:
+
+```bash
+python3 x_bot_gui.py
+```
+
+**GUI Features:**
+- ✨ Large text area for composing tweets
+- 📊 Real-time character counter (0/280)
+- 📸 Add up to 4 images with file picker
+- 🚀 One-click posting
+- 📥 View recent tweets with engagement stats
+- 📋 Activity log showing all actions
 
 ### Command Line
 
