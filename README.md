@@ -2,12 +2,10 @@
 
 A simple, powerful Python bot for posting to X (formerly Twitter) via the API.
 
-## Quick Start
-
-
-
-
 ![App Screenshot](/images/E4819A62-08BE-40B6-87B8-C774FEB8AA93.png "App Screenshot")
+
+
+## Quick Start
 
 
 ### 1. Install Dependencies

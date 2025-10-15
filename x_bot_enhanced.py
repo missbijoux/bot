@@ -221,21 +221,33 @@ class XBotEnhanced:
             media_files = json.loads(media_files_json) if media_files_json else None
             
             # Post the tweet
+            tweet_result = None
             if media_files:
-                self.post_tweet_with_media(content, media_files, reply_to_tweet_id)
+                tweet_result = self.post_tweet_with_media(content, media_files, reply_to_tweet_id)
             else:
-                self.post_tweet(content, reply_to_tweet_id)
+                tweet_result = self.post_tweet(content, reply_to_tweet_id)
             
-            # Update status
-            cursor.execute('''
-                UPDATE scheduled_tweets 
-                SET status = 'posted', posted_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (tweet_id,))
-            
-            conn.commit()
-            print(f"✓ Posted scheduled tweet #{tweet_id}")
-            return True
+            # Check if post was successful
+            if tweet_result:
+                # Update status to posted
+                cursor.execute('''
+                    UPDATE scheduled_tweets 
+                    SET status = 'posted', posted_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (tweet_id,))
+                
+                conn.commit()
+                print(f"✓ Posted scheduled tweet #{tweet_id}")
+                return True
+            else:
+                # Post failed (returned None)
+                print(f"❌ Failed to post scheduled tweet #{tweet_id}: Post method returned None")
+                cursor.execute('''
+                    UPDATE scheduled_tweets SET status = 'failed'
+                    WHERE id = ?
+                ''', (tweet_id,))
+                conn.commit()
+                return False
             
         except Exception as e:
             print(f"❌ Failed to post scheduled tweet #{tweet_id}: {e}")
@@ -430,25 +442,49 @@ class XBotEnhanced:
             self.reply_count = 0
             self.last_reply_reset = now
     
+    def cancel_scheduled_tweet(self, tweet_id: int):
+        """Cancel a scheduled tweet"""
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                UPDATE scheduled_tweets 
+                SET status = 'cancelled'
+                WHERE id = ?
+            ''', (tweet_id,))
+            
+            conn.commit()
+            print(f"✓ Scheduled tweet #{tweet_id} cancelled")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to cancel tweet #{tweet_id}: {e}")
+            return False
+        finally:
+            conn.close()
+    
     # ===== BASIC TWEET METHODS (from original bot) =====
     
     def post_tweet(self, content: str, reply_to_tweet_id: str = None):
         """Post a simple text tweet"""
-        if not self.api:
+        if not self.client:
             print("❌ Not authenticated. Check your credentials.")
             return None
         
         try:
-            if reply_to_tweet_id:
-                tweet = self.api.update_status(
-                    status=content,
-                    in_reply_to_status_id=reply_to_tweet_id
-                )
-            else:
-                tweet = self.api.update_status(status=content)
+            # Use v2 API Client (works with Free tier)
+            response = self.client.create_tweet(
+                text=content,
+                in_reply_to_tweet_id=reply_to_tweet_id
+            )
             
-            print(f"✓ Tweet posted: {tweet.id_str}")
-            return tweet.id_str
+            if response.data:
+                tweet_id = response.data['id']
+                print(f"✓ Tweet posted: {tweet_id}")
+                return str(tweet_id)
+            else:
+                print("❌ No response data from API")
+                return None
             
         except tweepy.TooManyRequests:
             print("❌ Rate limit exceeded. Please wait before posting again.")
@@ -459,7 +495,7 @@ class XBotEnhanced:
     def post_tweet_with_media(self, content: str, media_files: List[str], 
                              reply_to_tweet_id: str = None):
         """Post a tweet with media"""
-        if not self.api:
+        if not self.client or not self.api:
             print("❌ Not authenticated. Check your credentials.")
             return None
         
@@ -467,7 +503,7 @@ class XBotEnhanced:
             return self.post_tweet(content, reply_to_tweet_id)
         
         try:
-            # Upload media files
+            # Upload media files using v1.1 API (media upload still supported on Free tier)
             media_ids = []
             for media_file in media_files:
                 if os.path.exists(media_file):
@@ -481,21 +517,20 @@ class XBotEnhanced:
                 print("❌ No valid media files found")
                 return None
             
-            # Post tweet with media
-            if reply_to_tweet_id:
-                tweet = self.api.update_status(
-                    status=content,
-                    media_ids=media_ids,
-                    in_reply_to_status_id=reply_to_tweet_id
-                )
-            else:
-                tweet = self.api.update_status(
-                    status=content,
-                    media_ids=media_ids
-                )
+            # Post tweet with media using v2 API Client (works with Free tier)
+            response = self.client.create_tweet(
+                text=content,
+                media_ids=media_ids,
+                in_reply_to_tweet_id=reply_to_tweet_id
+            )
             
-            print(f"✓ Tweet with media posted: {tweet.id_str}")
-            return tweet.id_str
+            if response.data:
+                tweet_id = response.data['id']
+                print(f"✓ Tweet with media posted: {tweet_id}")
+                return str(tweet_id)
+            else:
+                print("❌ No response data from API")
+                return None
             
         except Exception as e:
             print(f"❌ Failed to post tweet with media: {e}")

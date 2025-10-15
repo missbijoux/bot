@@ -902,7 +902,16 @@ def get_scheduled():
     
     try:
         tweets = bot.get_scheduled_tweets()
-        return jsonify({'success': True, 'tweets': tweets})
+        # Convert tuple format to dict format for frontend
+        tweet_list = []
+        for tweet in tweets:
+            tweet_id, content, scheduled_time, media_files, reply_to_tweet_id = tweet
+            tweet_list.append({
+                'id': tweet_id,
+                'text': content,
+                'scheduled_time': scheduled_time
+            })
+        return jsonify({'success': True, 'tweets': tweet_list})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
