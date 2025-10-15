@@ -429,10 +429,22 @@ HTML_TEMPLATE = '''
             log('📤 Posting tweet...');
             
             try {
+                // Use FormData to send text and images
+                const formData = new FormData();
+                formData.append('text', text);
+                
+                // Add images from file input
+                const files = imageInput.files;
+                if (files.length > 0) {
+                    for (let i = 0; i < Math.min(files.length, 4); i++) {
+                        formData.append('images', files[i]);
+                    }
+                    log(`📎 Uploading ${files.length} image${files.length > 1 ? 's' : ''}...`);
+                }
+                
                 const response = await fetch('/post', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text: text})
+                    body: formData  // Send FormData, not JSON
                 });
                 
                 const data = await response.json();
@@ -507,7 +519,8 @@ HTML_TEMPLATE = '''
 
 @app.route('/')
 def home():
-    return render_template_string(HTML_TEMPLATE, authenticated=authenticated)
+    # Don't check auth on page load - let it load instantly!
+    return render_template_string(HTML_TEMPLATE, authenticated=True)
 
 @app.route('/post', methods=['POST'])
 def post_tweet():
@@ -515,14 +528,48 @@ def post_tweet():
     if not auth or not bot:
         return jsonify({'success': False, 'error': 'Not authenticated'})
     
-    data = request.json
-    text = data.get('text', '').strip()
+    # Handle both JSON and form data
+    if request.is_json:
+        text = request.json.get('text', '').strip()
+    else:
+        text = request.form.get('text', '').strip()
     
     if not text:
         return jsonify({'success': False, 'error': 'Empty tweet'})
     
     try:
-        response = bot.post_tweet(text)
+        # Check for uploaded images
+        images = request.files.getlist('images')
+        
+        if images and len(images) > 0:
+            # Save images temporarily
+            import tempfile
+            image_paths = []
+            
+            for img in images[:4]:  # Max 4 images
+                if img.filename:
+                    temp = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(img.filename)[1])
+                    img.save(temp.name)
+                    image_paths.append(temp.name)
+                    temp.close()
+            
+            if image_paths:
+                # Post with media
+                response = bot.post_tweet_with_media(text, image_paths)
+                
+                # Clean up temp files
+                for path in image_paths:
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
+            else:
+                # Post text only if no valid images
+                response = bot.post_tweet(text)
+        else:
+            # Post text only
+            response = bot.post_tweet(text)
+        
         if response and response.data:
             tweet_id = response.data.get('id')
             return jsonify({'success': True, 'tweet_id': tweet_id})
