@@ -35,7 +35,7 @@ HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>X Bot Enhanced</title>
+    <title>X Bot</title>
     <meta charset="utf-8">
     <style>
         * {
