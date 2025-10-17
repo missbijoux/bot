@@ -50,7 +50,8 @@ HTML_TEMPLATE = '''
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            background: url('https://i.pinimg.com/736x/0f/48/fe/0f48fe58fe61afed32b483aa11509279.jpg') repeat fixed;
+            background-color: #0f0c29; /* Fallback color */
             min-height: 100vh;
             padding: 20px;
         }
@@ -844,9 +845,10 @@ def post_tweet():
         else:
             response = bot.post_tweet(text)
         
-        if response and response.data:
-            return jsonify({'success': True, 'tweet_id': response.data.get('id')})
-        return jsonify({'success': False, 'error': 'No response from API'})
+        # XBotEnhanced returns the tweet_id string directly, not a response object
+        if response:
+            return jsonify({'success': True, 'tweet_id': response})
+        return jsonify({'success': False, 'error': 'Failed to post tweet'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -978,14 +980,19 @@ def open_browser():
     webbrowser.open('http://127.0.0.1:5003')
 
 if __name__ == '__main__':
-    threading.Thread(target=open_browser, daemon=True).start()
+    # Get port from environment variable (for Railway/Heroku) or use 5003 locally
+    port = int(os.environ.get('PORT', 5003))
+    
+    # Only open browser if running locally
+    if port == 5003:
+        threading.Thread(target=open_browser, daemon=True).start()
     
     print("\n" + "="*60)
     print("🐦 X Bot Enhanced Web Interface")
     print("="*60)
-    print("\n✨ Opening at: http://127.0.0.1:5003")
+    print(f"\n✨ Running on port: {port}")
     print("💡 Features: Post · Schedule · Auto-Reply · Images")
     print("\n🎯 Press Ctrl+C to stop\n")
     
-    app.run(debug=False, port=5003)
+    app.run(host='0.0.0.0', debug=False, port=port)
 

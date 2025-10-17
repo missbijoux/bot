@@ -700,10 +700,11 @@ def post_tweet():
         return jsonify({'success': False, 'error': 'Empty tweet'})
     
     try:
+        # XBotEnhanced returns the tweet_id string directly, not a response object
         response = bot.post_tweet(text)
-        if response and response.data:
-            return jsonify({'success': True, 'tweet_id': response.data.get('id')})
-        return jsonify({'success': False, 'error': 'No response from API'})
+        if response:
+            return jsonify({'success': True, 'tweet_id': response})
+        return jsonify({'success': False, 'error': 'Failed to post tweet'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 

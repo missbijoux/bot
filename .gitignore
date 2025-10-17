@@ -1,6 +1,5 @@
 # Credentials - NEVER commit these!
 x_credentials.json
-*.json
 
 # Python
 __pycache__/
@@ -45,4 +44,8 @@ test_image.*
 
 # Logs
 *.log
+
+# Database and scheduled content (instance-specific)
+x_bot.db
+scheduled_images/
 

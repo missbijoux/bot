@@ -54,7 +54,7 @@ class XBotEnhanced:
         self.last_reply_reset = datetime.now()
     
     def _load_credentials(self):
-        """Load credentials from file"""
+        """Load credentials from file or environment variables"""
         credentials = {}
         
         if os.path.exists(self.credentials_file):
@@ -65,12 +65,15 @@ class XBotEnhanced:
             except Exception as e:
                 print(f"⚠ Warning: Could not load {self.credentials_file}: {e}")
         
-        # Get credentials
-        self.api_key = credentials.get('api_key')
-        self.api_secret = credentials.get('api_secret')
-        self.access_token = credentials.get('access_token')
-        self.access_token_secret = credentials.get('access_token_secret')
-        self.bearer_token = credentials.get('bearer_token')
+        # Get credentials - try environment variables first (for Railway/Heroku), then file
+        self.api_key = os.environ.get('API_KEY') or credentials.get('api_key')
+        self.api_secret = os.environ.get('API_SECRET') or credentials.get('api_secret')
+        self.access_token = os.environ.get('ACCESS_TOKEN') or credentials.get('access_token')
+        self.access_token_secret = os.environ.get('ACCESS_TOKEN_SECRET') or credentials.get('access_token_secret')
+        self.bearer_token = os.environ.get('BEARER_TOKEN') or credentials.get('bearer_token')
+        
+        if os.environ.get('API_KEY'):
+            print("✓ Using credentials from environment variables")
         
         # Authenticate with Twitter API
         self._authenticate()
