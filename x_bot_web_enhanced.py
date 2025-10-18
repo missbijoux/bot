@@ -50,7 +50,7 @@ HTML_TEMPLATE = '''
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: url('https://i.pinimg.com/736x/0f/48/fe/0f48fe58fe61afed32b483aa11509279.jpg') repeat fixed;
+            background: url('https://i.pinimg.com/1200x/9b/10/4b/9b104b15789a07b8b595d552befd1c26.jpg') center center / cover no-repeat fixed;
             background-color: #0f0c29; /* Fallback color */
             min-height: 100vh;
             padding: 20px;
